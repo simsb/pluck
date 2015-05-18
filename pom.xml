@@ -25,7 +25,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>Pluck</mainClass>
+                            <mainClass>com.plus.blakesroad.pluck.Pluck</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
