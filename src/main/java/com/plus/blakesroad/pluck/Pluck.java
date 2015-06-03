@@ -1,12 +1,10 @@
 package com.plus.blakesroad.pluck;
 
-import com.google.common.base.Optional;
-import de.dr1fter.cliparsec.CliParser;
-import de.dr1fter.cliparsec.Converters;
-import de.dr1fter.cliparsec.ParsingResult;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import de.dr1fter.cliparsec.annotations.Command;
 import de.dr1fter.cliparsec.annotations.HelpOption;
-import de.dr1fter.cliparsec.annotations.Option;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,14 +29,27 @@ public class Pluck {
     @Command(name = "copy")
     private CopyArgs copyArgs;
 
+    public Pluck() {
+        this.copyArgs = new CopyArgs();
+    }
+
 
 
     static public void main(String[] args) {
         Pluck pluck = new Pluck();
         try {
-            ParsingResult parsingResult = CliParser.createCliParser().parse(pluck, args);
-            if (parsingResult.status() != ParsingResult.Status.HELP
-                    && "copy".equals(((Optional<ParsingResult.SelectedCommand>) parsingResult.selectedCommand()).get().commandName())) {
+
+            JCommander jCommander = new JCommander();
+            jCommander.addCommand("copy", pluck.copyArgs);
+            jCommander.parse(args);
+
+            if (pluck.copyArgs.help) {
+                jCommander.usage();
+                System.exit(0);
+            }
+
+
+            if ("copy".equals(jCommander.getParsedCommand())) {
                 pluck.showArgs();
                 pluck.walkFileTree();
             }
@@ -145,18 +156,22 @@ public class Pluck {
             System.out.println("match glob: " + copyArgs.type);
         }
 
-        static class CopyArgs {
+    @Parameters(commandDescription = "Copy files matching glob pattern")
+    static class CopyArgs {
+        @Parameter(names = {"--help", "-h"}, help = true)
+        boolean help;
 
-            @Option(shortOption = 'f', description="force copy")
+
+        @Parameter(names = { "-f", "-force" }, description = "Carry out the action")
             boolean force; //options default to their field names
-            @Option(shortOption = 's', converter = Converters.DirectoryThatExists.class, description="source directory")
+            @Parameter(names = { "-s", "-source" }, required = true, description = "Source directory")
             File sourceDirectory;
-            @Option(shortOption = 'd', converter = Converters.DirectoryThatExists.class, description="destination directory")
+            @Parameter(names = { "-d", "-destination" }, required = true, description = "Destination directory")
             File destinationDirectory;
 
-            @Option(shortOption = 't', description="match file glob")
+            @Parameter(names = { "-t", "-type" }, required = true, description = "File match glob")
             String type;
-            @Option(shortOption ='r', description = "replace existing files")
+            @Parameter(names = { "-r", "-replace" }, description = "Replace files which exist in destination directory")
             boolean replace;
         }
 

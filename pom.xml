@@ -14,6 +14,11 @@
             <artifactId>de.dr1fter.cli-parsec</artifactId>
             <version>0.2.1</version>
         </dependency>
+        <dependency>
+            <groupId>com.beust</groupId>
+            <artifactId>jcommander</artifactId>
+            <version>1.30</version>
+        </dependency>
 
     </dependencies>
     <build>
