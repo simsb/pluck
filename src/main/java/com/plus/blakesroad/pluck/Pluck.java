@@ -26,18 +26,20 @@ import java.util.ArrayList;
  */
 public class Pluck {
 
+    @HelpOption
+    private boolean helpOption;
     @Command(name = "copy")
     private CopyArgs copyArgs;
 
-    @HelpOption()
-    private Object helpOption;
+
 
     static public void main(String[] args) {
         Pluck pluck = new Pluck();
         try {
             ParsingResult parsingResult = CliParser.createCliParser().parse(pluck, args);
-            if ("copy".equals(((Optional<ParsingResult.SelectedCommand>) parsingResult.selectedCommand()).get().commandName())) {
-                pluck.showArgs(args);
+            if (parsingResult.status() != ParsingResult.Status.HELP
+                    && "copy".equals(((Optional<ParsingResult.SelectedCommand>) parsingResult.selectedCommand()).get().commandName())) {
+                pluck.showArgs();
                 pluck.walkFileTree();
             }
         } catch (Exception e) {
@@ -56,69 +58,69 @@ public class Pluck {
 
 
             public Walker(CopyArgs copyArgs) {
-            matcher = FileSystems.getDefault()
-                    .getPathMatcher("glob:" + copyArgs.type);
-            this.sourceDirectory = copyArgs.sourceDirectory;
-            this.destinationDirectory = copyArgs.destinationDirectory;
-            this.force = copyArgs.force;
-            this.replace = copyArgs.replace;
-        }
+                matcher = FileSystems.getDefault()
+                        .getPathMatcher("glob:" + copyArgs.type);
+                this.sourceDirectory = copyArgs.sourceDirectory;
+                this.destinationDirectory = copyArgs.destinationDirectory;
+                this.force = copyArgs.force;
+                this.replace = copyArgs.replace;
+            }
 
-        void matchAndCopy(Path filePath) {
-            Path name = filePath.getFileName();
-            if (name != null && matcher.matches(name)) {
+            void matchAndCopy(Path filePath) {
+                Path name = filePath.getFileName();
+                if (name != null && matcher.matches(name)) {
 
-                if (!this.force) {
-                    System.out.println(filePath);
-                    try {
-                        bytes += Files.size(filePath);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    if (!this.force) {
+                        System.out.println(filePath);
+                        try {
+                            bytes += Files.size(filePath);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    ArrayList<CopyOption> copyOptions = new ArrayList<CopyOption>();
+                    copyOptions.add(StandardCopyOption.COPY_ATTRIBUTES);
+                    final Path newPath = sourceDirectory.toPath().relativize(filePath);
+                    final Path destinationPath = destinationDirectory.toPath().resolve(newPath);
+                    if (this.replace) {
+                        copyOptions.add(StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    if (this.force && (!Files.exists(destinationPath) || this.replace)) {
+                        try {
+                            Files.createDirectories(destinationPath.getParent());
+                            Files.copy(filePath, destinationPath, copyOptions.toArray(new CopyOption[copyOptions.size()]));
+                            System.out.println("Copied " + destinationPath);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    } else if (this.force) {
+                        System.out.println("File exists " + destinationPath);
                     }
                 }
-                ArrayList<CopyOption> copyOptions = new ArrayList<CopyOption>();
-                copyOptions.add(StandardCopyOption.COPY_ATTRIBUTES);
-                final Path newPath = sourceDirectory.toPath().relativize(filePath);
-                final Path destinationPath = destinationDirectory.toPath().resolve(newPath);
-                if (this.replace) {
-                    copyOptions.add(StandardCopyOption.REPLACE_EXISTING);
-                }
-
-                if (this.force && (!Files.exists(destinationPath) || this.replace)) {
-                    try {
-                        Files.createDirectories(destinationPath.getParent());
-                        Files.copy(filePath, destinationPath, copyOptions.toArray(new CopyOption[copyOptions.size()]));
-                        System.out.println("Copied " + destinationPath);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } else if (this.force) {
-                    System.out.println("File exists " + destinationPath);
-                }
             }
-        }
 
-        @Override
-        public FileVisitResult visitFile(Path file,
-                                         BasicFileAttributes attr) {
-            if (attr.isRegularFile()) {
-                matchAndCopy(file);
+            @Override
+            public FileVisitResult visitFile(Path file,
+                                             BasicFileAttributes attr) {
+                if (attr.isRegularFile()) {
+                    matchAndCopy(file);
+                }
+                return FileVisitResult.CONTINUE;
             }
-            return FileVisitResult.CONTINUE;
-        }
 
-        @Override
-        public FileVisitResult postVisitDirectory(Path dir,
-                                                  IOException exc) {
-            return FileVisitResult.CONTINUE;
-        }
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir,
+                                                      IOException exc) {
+                return FileVisitResult.CONTINUE;
+            }
 
-        @Override
-        public FileVisitResult visitFileFailed(Path file,
-                                               IOException exc) {
-            System.err.println(exc);
-            return FileVisitResult.CONTINUE;
-        }
+            @Override
+            public FileVisitResult visitFileFailed(Path file,
+                                                   IOException exc) {
+                System.err.println(exc);
+                return FileVisitResult.CONTINUE;
+            }
 
             public long getBytes() {
                 return bytes;
@@ -129,13 +131,13 @@ public class Pluck {
             Walker walker = new Walker(copyArgs);
             try {
                 Files.walkFileTree(copyArgs.sourceDirectory.toPath(), walker);
-                System.out.println("Total megabytes: " + (walker.getBytes() != 0 ? (walker.getBytes() / 1024) /1000 : 0));
+                System.out.println("Total megabytes: " + walker.getBytes());
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        private void showArgs(String[] args) throws Exception {
+        private void showArgs() throws Exception {
             System.out.println("force: " + copyArgs.force);
             System.out.println("replace: " + copyArgs.replace);
             System.out.println("source directory: " + copyArgs.sourceDirectory);
@@ -144,6 +146,7 @@ public class Pluck {
         }
 
         static class CopyArgs {
+
             @Option(shortOption = 'f', description="force copy")
             boolean force; //options default to their field names
             @Option(shortOption = 's', converter = Converters.DirectoryThatExists.class, description="source directory")
