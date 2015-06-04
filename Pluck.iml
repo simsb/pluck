@@ -11,5 +11,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: de.dr1fter:de.dr1fter.cli-parsec:0.2.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:15.0" level="project" />
+    <orderEntry type="library" name="Maven: com.beust:jcommander:1.30" level="project" />
   </component>
 </module>
